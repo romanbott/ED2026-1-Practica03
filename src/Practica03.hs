@@ -34,33 +34,64 @@ u = Var "u"
 -- Sinonimo para los estados
 type Estado = [String]
 
+-- Funcion auxiliar que toma una lista
+-- como entrada y devuelve una lista sin repeticiones
+unique:: Eq a => [a] -> [a]
+unique[] = []
+unique(x:xs)
+  | elem x xs = xs'
+  | otherwise    = x : xs'
+  where xs' = unique xs
+
 -- Ejercicio 1
 variables :: Prop -> [String]
-variables = undefined
+variables prop = unique (collect_vars prop)
+    where 
+    collect_vars prop = case prop of
+        Var name -> [name]
+        Not p -> collect_vars p
+        And p q -> (collect_vars p) ++ (collect_vars q)
+        Or p q -> (collect_vars p) ++ (collect_vars q)
+        Impl p q  -> (collect_vars p) ++ (collect_vars q)
+        Syss p q -> (collect_vars p) ++ (collect_vars q)
+        Cons _ -> []
 
 -- Ejercicio 2
 interpretacion :: Prop -> Estado -> Bool
-interpretacion = undefined
+interpretacion p e = case p of
+    Var name -> elem name e
+    Not p -> not (interpretacion p e)
+    And p q -> (interpretacion p e) && (interpretacion q e)
+    Or p q -> (interpretacion p e)  || (interpretacion q e)
+    Impl p q  -> interpretacion (Or (Not p) q) e
+    Syss p q -> interpretacion (And (Impl p q) (Impl q p)) e
+    Cons b -> b
 
 -- Ejercicio 3
 estadosPosibles :: Prop -> [Estado]
-estadosPosibles = undefined
+estadosPosibles p = conjuntoPotencia (variables p)
 
 -- Ejercicio 4
 modelos :: Prop -> [Estado]
-modelos = undefined
+modelos p = [e | e <- estadosPosibles p, interpretacion p e]
 
 -- Ejercicio 5
 sonEquivalentes :: Prop -> Prop -> Bool
-sonEquivalentes = undefined
+sonEquivalentes p q = tautologia (Syss p q)  
 
 -- Ejercicio 6
 tautologia :: Prop -> Bool
-tautologia = undefined
+tautologia p = and (map (interpretacion p) (estadosPosibles p))
 
 -- Ejercicio 7
 consecuenciaLogica :: [Prop] -> Prop -> Bool
-consecuenciaLogica = undefined
+consecuenciaLogica premisas c = tautologia (Impl (andMultiple premisas) c)
+
+-- Función auxiliar que toma una lista de `Prop`s
+-- y devuelve el `And` anidado de todas ellas.
+andMultiple :: [Prop] -> Prop
+andMultiple [] = Cons True
+andMultiple (p:ps) = And p (andMultiple ps)
 
 --Funcion auxiliar
 conjuntoPotencia :: [a] -> [[a]]
